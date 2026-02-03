@@ -4,8 +4,7 @@ import { modifier } from "ember-modifier";
 import { apiInitializer } from "discourse/lib/api";
 import { addSearchResultsCallback } from "discourse/lib/search";
 
-const MAX_THUMBNAILS_MOBILE = 3;
-const MAX_THUMBNAILS_DESKTOP = 5;
+const MOBILE_REDUCTION = 2;
 
 const moveAfterBlurb = modifier((element) => {
   const searchLink = element.closest(".search-link");
@@ -18,10 +17,17 @@ const isLastIndex = (index, length) => index === length - 1;
 
 class SearchThumbnails extends Component {
   @service capabilities;
+  @service siteSettings;
 
-  maxThumbnails = this.capabilities.viewport.md
-    ? MAX_THUMBNAILS_DESKTOP
-    : MAX_THUMBNAILS_MOBILE;
+  get maxThumbnails() {
+    const setting = this.siteSettings.search_thumbnails_max_count;
+    if (setting === 0) {
+      return Infinity;
+    }
+    return this.capabilities.viewport.md
+      ? setting
+      : Math.max(1, setting - MOBILE_REDUCTION);
+  }
 
   get imageData() {
     return (
