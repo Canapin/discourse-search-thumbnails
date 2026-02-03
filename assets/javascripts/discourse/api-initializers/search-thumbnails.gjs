@@ -1,4 +1,5 @@
 import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import { apiInitializer } from "discourse/lib/api";
@@ -6,10 +7,17 @@ import { addSearchResultsCallback } from "discourse/lib/search";
 
 const MOBILE_REDUCTION = 2;
 
-const moveAfterBlurb = modifier((element) => {
+const moveAfterBlurb = modifier((element, [component]) => {
   const searchLink = element.closest(".search-link");
   if (searchLink) {
     searchLink.appendChild(element);
+    const href = searchLink.getAttribute("href");
+    if (href) {
+      const match = href.match(/\/(\d+)(?:\/(\d+))?(?:\?|$)/);
+      if (match) {
+        component.postNumber = match[2] ? parseInt(match[2], 10) : 1;
+      }
+    }
   }
 });
 
@@ -18,6 +26,8 @@ const isLastIndex = (index, length) => index === length - 1;
 class SearchThumbnails extends Component {
   @service capabilities;
   @service siteSettings;
+
+  @tracked postNumber = null;
 
   get maxThumbnails() {
     const setting = this.siteSettings.search_thumbnails_max_count;
@@ -30,17 +40,18 @@ class SearchThumbnails extends Component {
   }
 
   get imageData() {
-    const data =
-      this.args.outletArgs.post?.image_search_data ||
-      this.args.outletArgs.topic?.search_result_image_data ||
-      {};
+    const post = this.args.outletArgs.post;
+    if (post?.image_search_data) {
+      return post.image_search_data;
+    }
 
-    console.log("--- Search Thumbnail Debug ---");
-    console.log("Post ID:", this.args.outletArgs.post?.id);
-    console.log("Topic ID:", this.args.outletArgs.topic?.id);
-    console.log("Data returned:", data);
+    const topic = this.args.outletArgs.topic;
+    const map = topic?.search_result_image_data_map;
+    if (map && this.postNumber) {
+      return map[this.postNumber] || {};
+    }
 
-    return data;
+    return {};
   }
 
   get visibleImages() {
@@ -55,22 +66,24 @@ class SearchThumbnails extends Component {
 
 class QuickSearchThumbnails extends SearchThumbnails {
   <template>
-    {{#if this.visibleImages.length}}
-      <span class="search-result-thumbnails" {{moveAfterBlurb}}>
-        {{#each this.visibleImages as |imageUrl index|}}
-          <span class="search-result-thumbnail-wrapper">
-            <img class="search-result-thumbnail" src={{imageUrl}} />
-            {{#if (isLastIndex index this.visibleImages.length)}}
-              {{#if this.extraCount}}
-                <span
-                  class="search-result-thumbnail-more"
-                >+{{this.extraCount}}</span>
+    <span class="search-result-thumbnails-wrapper" {{moveAfterBlurb this}}>
+      {{#if this.visibleImages.length}}
+        <span class="search-result-thumbnails">
+          {{#each this.visibleImages as |imageUrl index|}}
+            <span class="search-result-thumbnail-wrapper">
+              <img class="search-result-thumbnail" src={{imageUrl}} />
+              {{#if (isLastIndex index this.visibleImages.length)}}
+                {{#if this.extraCount}}
+                  <span
+                    class="search-result-thumbnail-more"
+                  >+{{this.extraCount}}</span>
+                {{/if}}
               {{/if}}
-            {{/if}}
-          </span>
-        {{/each}}
-      </span>
-    {{/if}}
+            </span>
+          {{/each}}
+        </span>
+      {{/if}}
+    </span>
   </template>
 }
 
@@ -103,11 +116,24 @@ export default apiInitializer((api) => {
   }
 
   addSearchResultsCallback((results) => {
+    const imageDataByTopicId = {};
+
     results.posts?.forEach((post) => {
-      if (post.image_search_data) {
-        post.topic.set("search_result_image_data", post.image_search_data);
+      if (post.image_search_data && post.topic_id) {
+        if (!imageDataByTopicId[post.topic_id]) {
+          imageDataByTopicId[post.topic_id] = {};
+        }
+        imageDataByTopicId[post.topic_id][post.post_number] =
+          post.image_search_data;
       }
     });
+
+    results.topics?.forEach((topic) => {
+      if (imageDataByTopicId[topic.id]) {
+        topic.set("search_result_image_data_map", imageDataByTopicId[topic.id]);
+      }
+    });
+
     return results;
   });
 
