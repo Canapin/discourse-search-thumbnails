@@ -2,3 +2,6 @@ plugins:
   search_thumbnails_enabled:
     default: true
     client: true
+  search_thumbnails_only_with_images_filter:
+    default: true
+    client: false
