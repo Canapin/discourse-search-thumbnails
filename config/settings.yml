@@ -8,5 +8,4 @@ plugins:
   search_thumbnails_max_count:
     default: 5
     min: 0
-    max: 20
     client: true

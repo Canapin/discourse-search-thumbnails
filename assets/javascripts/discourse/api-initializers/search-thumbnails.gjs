@@ -30,11 +30,17 @@ class SearchThumbnails extends Component {
   }
 
   get imageData() {
-    return (
-      this.args.outletArgs.topic?.search_result_image_data ||
+    const data =
       this.args.outletArgs.post?.image_search_data ||
-      {}
-    );
+      this.args.outletArgs.topic?.search_result_image_data ||
+      {};
+
+    console.log("--- Search Thumbnail Debug ---");
+    console.log("Post ID:", this.args.outletArgs.post?.id);
+    console.log("Topic ID:", this.args.outletArgs.topic?.id);
+    console.log("Data returned:", data);
+
+    return data;
   }
 
   get visibleImages() {
