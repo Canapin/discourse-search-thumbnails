@@ -34,6 +34,7 @@ after_initialize do
 
   add_to_serializer(:search_post, :include_image_data?) do
     return false if object.image_upload_id.blank?
+    return true unless SiteSetting.search_thumbnails_only_with_images_filter
     options[:result]&.term&.match?(/with:images/i)
   end
 end
