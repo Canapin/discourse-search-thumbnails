@@ -30,8 +30,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgb(0 0 0 / 60%);
-    color: var(--primary-very-high);
+    background: color-mix(in srgb, var(--secondary) 60%, transparent);
+    color: var(--primary);
     font-size: var(--font-up-3);
     font-weight: 700;
     border-radius: var(--d-border-radius);
