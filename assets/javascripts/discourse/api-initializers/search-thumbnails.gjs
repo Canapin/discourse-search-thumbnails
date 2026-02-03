@@ -87,6 +87,91 @@ class QuickSearchThumbnails extends SearchThumbnails {
   </template>
 }
 
+const injectPostThumbnails = modifier(
+  (element, [resultType, siteSettings, capabilities]) => {
+    if (resultType.componentName !== "search-result-post") {
+      return;
+    }
+
+    const setting = siteSettings.search_thumbnails_max_count;
+    const maxCount =
+      setting === 0
+        ? Infinity
+        : capabilities.viewport.md
+          ? setting
+          : Math.max(1, setting - MOBILE_REDUCTION);
+    const container = element.closest(".search-result-post");
+    if (!container) {
+      return;
+    }
+
+    const items = container.querySelectorAll(".list .item");
+    resultType.results.forEach((result, index) => {
+      const item = items[index];
+      if (!item) {
+        return;
+      }
+
+      const imageData = result.image_search_data;
+      if (!imageData?.urls?.length) {
+        return;
+      }
+
+      const searchLink = item.querySelector(".search-link");
+      if (
+        !searchLink ||
+        searchLink.querySelector(".search-result-thumbnails")
+      ) {
+        return;
+      }
+
+      const urls = imageData.urls.slice(0, maxCount);
+      const extra = imageData.total > maxCount ? imageData.total - maxCount : 0;
+
+      const wrapper = document.createElement("span");
+      wrapper.className = "search-result-thumbnails";
+
+      urls.forEach((url, i) => {
+        const thumbWrapper = document.createElement("span");
+        thumbWrapper.className = "search-result-thumbnail-wrapper";
+
+        const img = document.createElement("img");
+        img.className = "search-result-thumbnail";
+        img.src = url;
+        thumbWrapper.appendChild(img);
+
+        if (i === urls.length - 1 && extra > 0) {
+          const more = document.createElement("span");
+          more.className = "search-result-thumbnail-more";
+          more.textContent = `+${extra}`;
+          thumbWrapper.appendChild(more);
+        }
+
+        wrapper.appendChild(thumbWrapper);
+      });
+
+      searchLink.appendChild(wrapper);
+    });
+  }
+);
+
+class PostTypeSearchThumbnails extends Component {
+  @service capabilities;
+  @service siteSettings;
+
+  <template>
+    <span
+      class="search-thumbnails-injector"
+      hidden
+      {{injectPostThumbnails
+        @outletArgs.resultType
+        this.siteSettings
+        this.capabilities
+      }}
+    ></span>
+  </template>
+}
+
 class FullPageSearchThumbnails extends SearchThumbnails {
   <template>
     {{#if this.visibleImages.length}}
@@ -141,6 +226,8 @@ export default apiInitializer((api) => {
     "search-menu-results-topic-title-suffix",
     QuickSearchThumbnails
   );
+
+  api.renderInOutlet("search-menu-results-type-top", PostTypeSearchThumbnails);
 
   api.renderAfterWrapperOutlet(
     "search-result-entry-blurb-wrapper",
