@@ -12,7 +12,7 @@ enabled_site_setting :search_thumbnails_enabled
 register_asset "stylesheets/search-thumbnails.scss"
 
 after_initialize do
-  rejected_img_classes = %w[emoji site-icon thumbnail]
+  rejected_img_classes = %w[emoji site-icon thumbnail avatar]
 
   extract_image_urls = ->(cooked) do
     cooked
