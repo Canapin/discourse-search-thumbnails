@@ -2,3 +2,4 @@ en:
   site_settings:
     search_thumbnails_enabled: "Enable thumbnail previews in search results for posts with images."
     search_thumbnails_only_with_images_filter: "Only show thumbnails when using the with:images filter. If disabled, thumbnails appear in all searches."
+    search_thumbnails_max_count: "Maximum number of thumbnails to display per result. Set to 0 for unlimited."

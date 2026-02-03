@@ -55,4 +55,41 @@ RSpec.describe "Search thumbnails" do
     expect(post_data["image_search_data"]["urls"]).to eq(["/uploads/default/original/1X/real.jpg"])
     expect(post_data["image_search_data"]["total"]).to eq(1)
   end
+
+  it "respects max_count setting" do
+    post_with_image.update!(cooked: <<~HTML)
+        <p><img src="/uploads/default/original/1X/img1.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img2.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img3.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img4.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img5.jpg"></p>
+      HTML
+    SiteSetting.search_thumbnails_max_count = 2
+
+    get "/search/query.json", params: { term: "with:images" }
+
+    expect(response.status).to eq(200)
+    post_data = response.parsed_body["posts"].find { |p| p["id"] == post_with_image.id }
+    expect(post_data["image_search_data"]["urls"].length).to eq(2)
+    expect(post_data["image_search_data"]["total"]).to eq(5)
+  end
+
+  it "returns all images when max_count is 0 (unlimited)" do
+    post_with_image.update!(cooked: <<~HTML)
+        <p><img src="/uploads/default/original/1X/img1.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img2.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img3.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img4.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img5.jpg"></p>
+        <p><img src="/uploads/default/original/1X/img6.jpg"></p>
+      HTML
+    SiteSetting.search_thumbnails_max_count = 0
+
+    get "/search/query.json", params: { term: "with:images" }
+
+    expect(response.status).to eq(200)
+    post_data = response.parsed_body["posts"].find { |p| p["id"] == post_with_image.id }
+    expect(post_data["image_search_data"]["urls"].length).to eq(6)
+    expect(post_data["image_search_data"]["total"]).to eq(6)
+  end
 end

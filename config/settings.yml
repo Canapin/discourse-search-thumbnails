@@ -5,3 +5,8 @@ plugins:
   search_thumbnails_only_with_images_filter:
     default: true
     client: false
+  search_thumbnails_max_count:
+    default: 5
+    min: 0
+    max: 20
+    client: true

@@ -29,7 +29,9 @@ after_initialize do
     include_condition: -> { include_image_data? },
   ) do
     urls = extract_image_urls.call(object.cooked)
-    { urls: urls.first(5), total: urls.size }
+    max_count = SiteSetting.search_thumbnails_max_count
+    limited_urls = max_count.zero? ? urls : urls.first(max_count)
+    { urls: limited_urls, total: urls.size }
   end
 
   add_to_serializer(:search_post, :include_image_data?) do
