@@ -22,12 +22,22 @@ RSpec.describe "Search thumbnails" do
     expect(post_data["image_search_data"]["total"]).to be_a(Integer)
   end
 
-  it "excludes image_search_data without with:images filter" do
+  it "excludes image_search_data without with:images filter by default" do
     get "/search/query.json", params: { term: post_with_image.topic.title }
 
     expect(response.status).to eq(200)
     post_data = response.parsed_body["posts"]&.find { |p| p["id"] == post_with_image.id }
     expect(post_data).not_to have_key("image_search_data") if post_data
+  end
+
+  it "includes image_search_data for all searches when only_with_images_filter is disabled" do
+    SiteSetting.search_thumbnails_only_with_images_filter = false
+
+    get "/search/query.json", params: { term: post_with_image.topic.title }
+
+    expect(response.status).to eq(200)
+    post_data = response.parsed_body["posts"]&.find { |p| p["id"] == post_with_image.id }
+    expect(post_data["image_search_data"]).to be_present
   end
 
   it "filters out images with rejected classes" do
