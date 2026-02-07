@@ -26,17 +26,15 @@ after_initialize do
   add_to_serializer(
     :search_post,
     :image_search_data,
-    include_condition: -> { include_image_data? },
+    include_condition: -> do
+      return false if object.image_upload_id.blank?
+      return true unless SiteSetting.search_thumbnails_only_with_images_filter
+      options[:result]&.term&.match?(/with:images/i)
+    end,
   ) do
     urls = extract_image_urls.call(object.cooked)
     max_count = SiteSetting.search_thumbnails_max_count
     limited_urls = max_count.zero? ? urls : urls.first(max_count)
     { urls: limited_urls, total: urls.size }
-  end
-
-  add_to_serializer(:search_post, :include_image_data?) do
-    return false if object.image_upload_id.blank?
-    return true unless SiteSetting.search_thumbnails_only_with_images_filter
-    options[:result]&.term&.match?(/with:images/i)
   end
 end
